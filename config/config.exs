@@ -1,4 +1,4 @@
 import Config
 
-config :samiti, ecto_repos: [Samiti.TestRepo]
+config :kirayedar, ecto_repos: [Kirayedar.TestRepo]
 import_config "#{config_env()}.exs"

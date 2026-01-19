@@ -1,0 +1,26 @@
+defmodule <%= @app_module %>Web.<%= @module %>Live.Show do
+  use <%= @app_module %>Web, :live_view
+
+  alias <%= @app_module %>.<%= @module %>
+  alias <%= @app_module %>.Repo
+
+  @impl true
+  def mount(_params, _session, socket) do
+    {:ok, socket}
+  end
+
+  @impl true
+  def handle_params(%{"id" => id}, _, socket) do
+    <%= @singular %> = Kirayedar.scope_global(fn ->
+      Repo.get!(<%= @module %>, id)
+    end)
+
+    {:noreply,
+     socket
+     |> assign(:page_title, page_title(socket.assigns.live_action))
+     |> assign(:<%= @singular %>, <%= @singular %>)}
+  end
+
+  defp page_title(:show), do: "Show <%= @module %>"
+  defp page_title(:edit), do: "Edit <%= @module %>"
+end

@@ -1,0 +1,20 @@
+defmodule <%= @app_module %>.Repo.Migrations.Create<%= String.capitalize(@table) %> do
+  use Ecto.Migration
+
+  def change do
+    create table(:<%= @table %><%= if @use_binary_id, do: ", primary_key: false" %>) do
+      <%= if @use_binary_id do %>add :id, :binary_id, primary_key: true<% end %>
+      add :name, :string, null: false
+      add :slug, :string, null: false
+      add :domain, :string
+      add :status, :string, default: "active", null: false
+      add :settings, :map, default: "{}", null: false
+
+      timestamps()
+    end
+
+    create unique_index(:<%= @table %>, [:slug])
+    create unique_index(:<%= @table %>, [:domain])
+    create index(:<%= @table %>, [:status])
+  end
+end

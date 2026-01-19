@@ -1,14 +1,13 @@
-defmodule Samiti.Utils do
+defmodule Kirayedar.Utils do
   import Mix.Generator
-
   @moduledoc false
 
-  @doc "Detects the current project name as a string (e.g., 'ignis')"
+  @doc "Detects the current project name as a string (e.g., 'my_app')"
   def app_name do
     to_string(Mix.Project.config()[:app])
   end
 
-  @doc "Detects the current project module as a string (e.g., 'Ignis')"
+  @doc "Detects the current project module as a string (e.g., 'MyApp')"
   def app_module do
     app_name() |> Macro.camelize()
   end
@@ -19,8 +18,9 @@ defmodule Samiti.Utils do
 
     cond do
       # Case: ends in "y" but not "ay", "ey", etc.
-      String.ends_with?(word, "y") and not String.ends_with?(word, ["ay", "ey", "iy", "oy", "uy"]) ->
-        String.slice(word, 0..2) <> "ies"
+      String.ends_with?(word, "y") and
+          not String.ends_with?(word, ["ay", "ey", "iy", "oy", "uy"]) ->
+        String.slice(word, 0..-2//1) <> "ies"
 
       # Case: ends in s, x, z, ch, sh
       String.ends_with?(word, ["s", "x", "z", "ch", "sh"]) ->
@@ -76,9 +76,9 @@ defmodule Samiti.Utils do
 
   @doc "get config using key or stop task processing"
   def get_config_or_fail(key) do
-    case Application.get_env(:samiti, key) do
+    case Application.get_env(:kirayedar, key) do
       nil ->
-        Mix.shell().error("Missing config [:samiti, :#{key}, Run 'mix samiti.setup'.")
+        Mix.shell().error("Missing config [:kirayedar, :#{key}]. Run 'mix kirayedar.setup'.")
         System.halt(1)
 
       value ->

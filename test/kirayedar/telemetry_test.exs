@@ -1,13 +1,13 @@
-defmodule Samiti.TelemetryTest do
+defmodule Kirayedar.TelemetryTest do
   use ExUnit.Case, async: true
 
   setup context do
-    on_exit(fn -> Samiti.put_tenant(nil) end)
+    on_exit(fn -> Kirayedar.put_tenant(nil) end)
 
     repo =
       cond do
-        context[:postgres] -> Samiti.TestRepo.Postgres
-        context[:mysql] -> Samiti.TestRepo.MySQL
+        context[:postgres] -> Kirayedar.TestRepo.Postgres
+        context[:mysql] -> Kirayedar.TestRepo.MySQL
         true -> nil
       end
 
@@ -19,13 +19,13 @@ defmodule Samiti.TelemetryTest do
   end
 
   @tag :postgres
-  test "emits [:samiti, :tenant, :create] event" do
+  test "emits [:kirayedar, :tenant, :create] event" do
     parent = self()
     handler_id = "telemetry-test"
 
     :telemetry.attach(
       handler_id,
-      [:samiti, :tenant, :create],
+      [:kirayedar, :tenant, :create],
       fn _name, _measurements, metadata, _config ->
         send(parent, {:event_captured, metadata.tenant})
       end,
@@ -33,7 +33,7 @@ defmodule Samiti.TelemetryTest do
     )
 
     # We can use a mock repo or a real one here
-    Samiti.create(Samiti.TestRepo.Postgres, "telemetry_tenant")
+    Kirayedar.create(Kirayedar.TestRepo.Postgres, "telemetry_tenant")
 
     assert_receive {:event_captured, "telemetry_tenant"}
 
