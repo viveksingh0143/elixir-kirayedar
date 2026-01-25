@@ -32,9 +32,15 @@ defmodule Kirayedar.Resolver do
   """
   @spec resolve(host()) :: tenant_id()
   def resolve(host) when is_binary(host) do
-    host
-    |> normalize_host()
-    |> do_resolve()
+    case ResolverCache.get(host) do
+      {:ok, tenant_id} ->
+        tenant_id
+
+      :miss ->
+        tenant_id = host |> normalize_host() |> do_resolve()
+        ResolverCache.put(host, tenant_id)
+        tenant_id
+    end
   end
 
   def resolve(_), do: nil
@@ -94,12 +100,31 @@ defmodule Kirayedar.Resolver do
     repo = Keyword.fetch!(config, :repo)
     tenant_model = Keyword.fetch!(config, :tenant_model)
 
-    case repo.get_by(tenant_model, domain: host) do
-      nil -> nil
-      tenant -> get_tenant_id(tenant)
+    # Check if repo is started
+    if Process.whereis(repo) do
+      repo.get_by tenant_model, domain: host do
+        nil -> nil
+        tenant -> get_tenant_id(tenant)
+      end
+    else
+      Logger.debug("Kirayedar.Resolver: Repo not started", repo: repo)
+      nil
     end
   rescue
-    _ -> nil
+    # Be specific about what we're catching
+    Ecto.QueryError ->
+      nil
+
+    # Table doesn't exist yet
+    ArgumentError ->
+      nil
+
+    e ->
+      Logger.warning("Kirayedar.Resolver: Unexpected error in find_by_domain",
+        error: Exception.message(e)
+      )
+
+      nil
   end
 
   defp extract_subdomain(host, config) do
