@@ -70,7 +70,7 @@ defmodule Kirayedar.MixProject do
   defp docs do
     [
       main: @name,
-      extras: ["README.md", "CHANGELOG.md"],
+      extras: ["README.md"],
       source_ref: "v#{@version}",
       source_url: @source_url
     ]
