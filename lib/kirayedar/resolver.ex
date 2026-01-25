@@ -32,15 +32,9 @@ defmodule Kirayedar.Resolver do
   """
   @spec resolve(host()) :: tenant_id()
   def resolve(host) when is_binary(host) do
-    case ResolverCache.get(host) do
-      {:ok, tenant_id} ->
-        tenant_id
-
-      :miss ->
-        tenant_id = host |> normalize_host() |> do_resolve()
-        ResolverCache.put(host, tenant_id)
-        tenant_id
-    end
+    host
+    |> normalize_host()
+    |> do_resolve()
   end
 
   def resolve(_), do: nil
@@ -71,17 +65,17 @@ defmodule Kirayedar.Resolver do
         nil
 
       # 2. Exact domain match
-      tenant = find_by_domain(host, config) ->
+      not is_nil(tenant = find_by_domain(host, config)) ->
         Logger.debug("Kirayedar.Resolver: Exact domain match", host: host, tenant: tenant)
         tenant
 
       # 3. Subdomain extraction
-      tenant = extract_subdomain(host, config) ->
+      not is_nil(tenant = extract_subdomain(host, config)) ->
         Logger.debug("Kirayedar.Resolver: Subdomain match", host: host, tenant: tenant)
         tenant
 
       # 4. Custom domain via slug
-      tenant = find_by_slug(host, config) ->
+      not is_nil(tenant = find_by_slug(host, config)) ->
         Logger.debug("Kirayedar.Resolver: Slug match", host: host, tenant: tenant)
         tenant
 
@@ -97,34 +91,42 @@ defmodule Kirayedar.Resolver do
   end
 
   defp find_by_domain(host, config) do
-    repo = Keyword.fetch!(config, :repo)
-    tenant_model = Keyword.fetch!(config, :tenant_model)
+    repo = Keyword.get(config, :repo)
+    tenant_model = Keyword.get(config, :tenant_model)
 
-    # Check if repo is started
-    if Process.whereis(repo) do
-      repo.get_by tenant_model, domain: host do
-        nil -> nil
-        tenant -> get_tenant_id(tenant)
-      end
-    else
-      Logger.debug("Kirayedar.Resolver: Repo not started", repo: repo)
-      nil
+    cond do
+      is_nil(repo) or is_nil(tenant_model) ->
+        nil
+
+      is_nil(Process.whereis(repo)) ->
+        nil
+
+      true ->
+        do_find_by_domain(repo, tenant_model, host)
     end
   rescue
-    # Be specific about what we're catching
     Ecto.QueryError ->
+      Logger.debug("Kirayedar.Resolver: Tenant table not ready", host: host)
       nil
 
-    # Table doesn't exist yet
     ArgumentError ->
+      Logger.debug("Kirayedar.Resolver: Repo not available", host: host)
       nil
 
     e ->
       Logger.warning("Kirayedar.Resolver: Unexpected error in find_by_domain",
-        error: Exception.message(e)
+        error: Exception.message(e),
+        host: host
       )
 
       nil
+  end
+
+  defp do_find_by_domain(repo, tenant_model, host) do
+    case repo.get_by(tenant_model, domain: host) do
+      nil -> nil
+      tenant -> get_tenant_id(tenant)
+    end
   end
 
   defp extract_subdomain(host, config) do
@@ -148,18 +150,44 @@ defmodule Kirayedar.Resolver do
   end
 
   defp find_by_slug(host, config) do
-    # Extract first segment as potential slug
     first_segment = host |> String.split(".") |> List.first()
 
-    repo = Keyword.fetch!(config, :repo)
-    tenant_model = Keyword.fetch!(config, :tenant_model)
+    repo = Keyword.get(config, :repo)
+    tenant_model = Keyword.get(config, :tenant_model)
 
-    case repo.get_by(tenant_model, slug: first_segment) do
+    cond do
+      is_nil(repo) or is_nil(tenant_model) ->
+        nil
+
+      is_nil(Process.whereis(repo)) ->
+        nil
+
+      true ->
+        do_find_by_slug(repo, tenant_model, first_segment)
+    end
+  rescue
+    Ecto.QueryError ->
+      Logger.debug("Kirayedar.Resolver: Tenant table not ready", host: host)
+      nil
+
+    ArgumentError ->
+      Logger.debug("Kirayedar.Resolver: Repo not available", host: host)
+      nil
+
+    e ->
+      Logger.warning("Kirayedar.Resolver: Unexpected error in find_by_slug",
+        error: Exception.message(e),
+        host: host
+      )
+
+      nil
+  end
+
+  defp do_find_by_slug(repo, tenant_model, slug) do
+    case repo.get_by(tenant_model, slug: slug) do
       nil -> nil
       tenant -> get_tenant_id(tenant)
     end
-  rescue
-    _ -> nil
   end
 
   defp get_tenant_id(tenant) do
