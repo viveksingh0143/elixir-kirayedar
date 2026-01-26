@@ -34,69 +34,6 @@ defmodule Kirayedar do
       # Health check
       Kirayedar.health_check(repo, "tenant_slug")
 
-  ## Common Patterns
-
-  ### Multi-database Transactions
-
-  When you need to perform operations across both global and tenant scopes:
-
-      Repo.transaction(fn ->
-        # Create global tenant record
-        tenant = Kirayedar.scope_global(fn ->
-          %Tenant{name: "Acme", slug: "acme"} |> Repo.insert!()
-        end)
-
-        # Create schema
-        Kirayedar.create(Repo, tenant.slug)
-
-        # Run migrations
-        Kirayedar.Migration.migrate(Repo, tenant.slug)
-
-        # Insert initial tenant data
-        Kirayedar.with_tenant(tenant.slug, fn ->
-          %Setting{key: "initialized", value: "true"} |> Repo.insert!()
-        end)
-      end)
-
-  ### Testing with Tenants
-
-      defmodule MyApp.PostTest do
-        use MyApp.DataCase
-
-        setup do
-          Kirayedar.create(Repo, "test_tenant")
-          Kirayedar.put_tenant("test_tenant")
-
-          on_exit(fn ->
-            Kirayedar.clear_tenant()
-            Kirayedar.drop(Repo, "test_tenant")
-          end)
-
-          :ok
-        end
-
-        test "creates post in tenant" do
-          post = %Post{title: "Test"} |> Repo.insert!()
-          assert post.title == "Test"
-        end
-      end
-
-  ### Background Jobs
-
-  When running background jobs, ensure tenant context is set:
-
-      defmodule MyApp.Worker do
-        use Oban.Worker
-
-        @impl Oban.Worker
-        def perform(%Oban.Job{args: %{"tenant_id" => tenant_id}}) do
-          Kirayedar.with_tenant(tenant_id, fn ->
-            # Your job logic here
-            MyApp.Reports.generate_monthly_report()
-          end)
-        end
-      end
-
   ## Telemetry Events
 
   Kirayedar emits the following telemetry events:
@@ -110,47 +47,6 @@ defmodule Kirayedar do
 
   Each success event includes measurements: `%{duration: milliseconds}`
   Each event includes metadata: `%{tenant: string, repo: module, action: atom}`
-
-  ## Production Considerations
-
-  ### Connection Pooling
-
-  Each tenant schema uses the same connection pool. Monitor pool size:
-
-      config :my_app, MyApp.Repo,
-        pool_size: 20,  # Adjust based on tenant count and load
-        queue_target: 5000
-
-  ### Migration Strategy
-
-  For production deployments:
-
-      defmodule MyApp.Release do
-        def migrate do
-          # Migrate global tables first
-          Ecto.Migrator.run(MyApp.Repo, :up, all: true)
-
-          # Then migrate all tenants
-          Kirayedar.Migration.migrate_all(MyApp.Repo, MyApp.Accounts.Tenant)
-        end
-      end
-
-  ### Health Checks
-
-  Include tenant health in your application monitoring:
-
-      defmodule MyApp.HealthCheck do
-        def check_tenants do
-          tenants = Repo.all(Tenant)
-
-          Enum.map(tenants, fn tenant ->
-            case Kirayedar.health_check(Repo, tenant.slug) do
-              {:ok, health} -> {tenant.slug, :healthy, health}
-              {:error, reason} -> {tenant.slug, :unhealthy, reason}
-            end
-          end)
-        end
-      end
   """
 
   require Logger

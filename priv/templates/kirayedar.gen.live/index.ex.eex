@@ -17,7 +17,7 @@ defmodule <%= @app_module %>Web.<%= @module %>Live.Index do
   defp apply_action(socket, :edit, %{"id" => id}) do
     socket
     |> assign(:page_title, "Edit <%= @module %>")
-    |> assign(:<%= @singular %>, Repo.get!(<%= @module %>, id))
+    |> assign(:<%= @singular %>, get_<%= @singular %>!(id))
   end
 
   defp apply_action(socket, :new, _params) do
@@ -39,11 +39,11 @@ defmodule <%= @app_module %>Web.<%= @module %>Live.Index do
 
   @impl true
   def handle_event("delete", %{"id" => id}, socket) do
-    <%= @singular %> = Repo.get!(<%= @module %>, id)
+    <%= @singular %> = get_<%= @singular %>!(id)
 
     case Kirayedar.drop(Repo, <%= @singular %>.slug) do
       :ok ->
-        {:ok, _} = Repo.delete(<%= @singular %>)
+        {:ok, _} = Kirayedar.scope_global(fn -> Repo.delete(<%= @singular %>) end)
         {:noreply, stream_delete(socket, :<%= @plural %>, <%= @singular %>)}
 
       {:error, _} ->
@@ -54,6 +54,12 @@ defmodule <%= @app_module %>Web.<%= @module %>Live.Index do
   defp list_<%= @plural %> do
     Kirayedar.scope_global(fn ->
       Repo.all(<%= @module %>)
+    end)
+  end
+
+  defp get_<%= @singular %>!(id) do
+    Kirayedar.scope_global(fn ->
+      Repo.get!(<%= @module %>, id)
     end)
   end
 end

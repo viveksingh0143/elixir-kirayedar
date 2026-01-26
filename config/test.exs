@@ -11,7 +11,8 @@ config :kirayedar, Kirayedar.Test.PostgresRepo,
   password: "postgres",
   hostname: "localhost",
   pool: Ecto.Adapters.SQL.Sandbox,
-  pool_size: 10
+  pool_size: 10,
+  priv: "test/support"
 
 config :kirayedar, Kirayedar.Test.MySQLRepo,
   database: "kirayedar_test",
@@ -19,4 +20,5 @@ config :kirayedar, Kirayedar.Test.MySQLRepo,
   password: "root",
   hostname: "localhost",
   pool: Ecto.Adapters.SQL.Sandbox,
-  pool_size: 10
+  pool_size: 10,
+  priv: "test/support"

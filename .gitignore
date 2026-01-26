@@ -21,3 +21,13 @@ erl_crash.dump
 
 # Ignore package tarball (built via "mix hex.build").
 kirayedar-*.tar
+
+# Ignore .elixir_ls for language server
+/.elixir_ls/
+
+# Environment files
+.env
+.env.local
+
+# Ignore temporary files for mac systems
+.DS_Store

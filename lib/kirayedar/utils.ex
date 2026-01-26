@@ -1,6 +1,7 @@
 defmodule Kirayedar.Utils do
-  import Mix.Generator
   @moduledoc false
+
+  import Mix.Generator
 
   @doc "Detects the current project name as a string (e.g., 'my_app')"
   def app_name do

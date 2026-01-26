@@ -5,6 +5,7 @@ defmodule Kirayedar.MixProject do
   @package_name "kirayedar"
   @version "0.1.0"
   @source_url "https://github.com/viveksingh0143/elixir-kirayedar"
+
   def project do
     [
       app: :kirayedar,
@@ -22,14 +23,13 @@ defmodule Kirayedar.MixProject do
     ]
   end
 
-  # Run "mix help compile.app" to learn about applications.
   def application do
     [
+      mod: {Kirayedar.Application, []},
       extra_applications: [:logger]
     ]
   end
 
-  # Run "mix help deps" to learn about dependencies.
   defp deps do
     [
       # Core database logic
@@ -57,7 +57,7 @@ defmodule Kirayedar.MixProject do
     """
   end
 
-  defp package() do
+  defp package do
     [
       name: @package_name,
       maintainers: ["Vivek Singh"],

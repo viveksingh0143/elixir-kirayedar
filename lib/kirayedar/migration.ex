@@ -46,7 +46,7 @@ defmodule Kirayedar.Migration do
       )
   """
   def migrate_all(repo, tenant_model, opts \\ []) do
-    tenants = repo.all(tenant_model)
+    tenants = Kirayedar.scope_global(fn -> repo.all(tenant_model) end)
 
     Logger.info("Kirayedar.Migration: Starting migrations for #{length(tenants)} tenants")
 
